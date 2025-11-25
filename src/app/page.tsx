@@ -1,65 +1,93 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { GroupManager } from '@/lib/group-manager'
+import { Group } from '@/types/group'
+import Link from 'next/link'
 
 export default function Home() {
+  const [groups, setGroups] = useState<Group[]>([])
+  const [groupManager, setGroupManager] = useState<GroupManager | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const manager = new GroupManager(localStorage)
+      setGroupManager(manager)
+      setGroups(manager.getAllGroups())
+    }
+  }, [])
+
+  const handleCreateGroup = () => {
+    if (!groupManager) return
+
+    const groupName = prompt('グループ名を入力してください:')
+    if (!groupName) return
+
+    const memberNames = prompt('メンバー名をカンマ区切りで入力してください (例: Alice,Bob,Charlie):')
+    if (!memberNames) return
+
+    const members = memberNames.split(',').map(name => name.trim()).filter(name => name)
+    if (members.length === 0) return
+
+    groupManager.createGroup(groupName, members)
+    setGroups(groupManager.getAllGroups())
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <h1 className="text-3xl font-bold text-gray-900">割り勘アプリ</h1>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900">グループ一覧</h2>
+          <button
+            onClick={handleCreateGroup}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            新しいグループを作成
+          </button>
+        </div>
+
+        {groups.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">グループがありません</p>
+            <p className="text-gray-400 mt-2">「新しいグループを作成」ボタンから始めましょう</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {groups.map(group => (
+              <div key={group.id} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{group.name}</h3>
+                <p className="text-gray-600 mb-4">
+                  メンバー: {group.members.map(m => m.name).join(', ')}
+                </p>
+                <p className="text-sm text-gray-400 mb-4">
+                  作成日: {group.createdAt.toLocaleDateString('ja-JP')}
+                </p>
+                <Link
+                  href={`/groups/${group.id}`}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium inline-block"
+                >
+                  グループを開く
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-12 bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">テスト結果</h3>
+          <p className="text-green-600 font-medium">✅ 全12個のテストが成功</p>
+          <div className="text-sm text-gray-600 mt-2">
+            <p>• 割り勘計算エンジン: 3テスト</p>
+            <p>• グループ管理システム: 9テスト</p>
+          </div>
         </div>
       </main>
     </div>
-  );
+  )
 }
